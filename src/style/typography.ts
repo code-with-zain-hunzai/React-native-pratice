@@ -1,65 +1,34 @@
 export const typography = {
   h1: {
-    fontSize: 32,
-    fontWeight: 'bold' as const,
-    lineHeight: 40,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: "700" as const,
   },
-  h2: {
-    fontSize: 24,
-    fontWeight: 'bold' as const,
-    lineHeight: 32,
-  },
-  h3: {
-    fontSize: 20,
-    fontWeight: 'bold' as const,
-    lineHeight: 28,
-  },
-  h4: {
-    fontSize: 18,
-    fontWeight: 'bold' as const,
-    lineHeight: 24,
-  },
-  h5: {
-    fontSize: 16,
-    fontWeight: 'bold' as const,
-    lineHeight: 22,
-  },
-  h6: {
-    fontSize: 14,
-    fontWeight: 'bold' as const,
-    lineHeight: 20,
-  },
-  
   body1: {
     fontSize: 16,
-    fontWeight: 'normal' as const,
-    lineHeight: 24,
+    lineHeight: 22,
+    fontWeight: "400" as const,
   },
   body2: {
     fontSize: 14,
-    fontWeight: 'normal' as const,
     lineHeight: 20,
+    fontWeight: "400" as const,
   },
   caption: {
     fontSize: 12,
-    fontWeight: 'normal' as const,
     lineHeight: 16,
+    fontWeight: "400" as const,
   },
-  overline: {
-    fontSize: 10,
-    fontWeight: 'bold' as const,
-    lineHeight: 14,
-    textTransform: 'uppercase' as const,
-  },
-  
   button: {
     fontSize: 14,
-    fontWeight: 'bold' as const,
-    lineHeight: 20,
+    lineHeight: 18,
+    fontWeight: "600" as const,
+    letterSpacing: 0.3,
   },
   buttonLarge: {
     fontSize: 16,
-    fontWeight: 'bold' as const,
-    lineHeight: 24,
+    lineHeight: 20,
+    fontWeight: "700" as const,
+    letterSpacing: 0.3,
   },
-};
+}

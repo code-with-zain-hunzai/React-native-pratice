@@ -1,29 +1,34 @@
 /**
- * Kekar Booking App
- * A comprehensive booking management system for service providers
+ * Kekar App
+ * Authentication Flow
  *
  * @format
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { StatusBar, StyleSheet, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppNavigator } from './src/navigations/AppNavigator';
+import { SignInScreen } from './src/screens/SignInScreen';
+import { SignUpScreen } from './src/screens/SignUpScreen';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
+  const [currentScreen, setCurrentScreen] = useState<'signin' | 'signup'>('signin');
 
   return (
     <SafeAreaProvider style={styles.container}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppNavigator />
+      {currentScreen === 'signin' ? (
+        <SignInScreen onNavigateToSignUp={() => setCurrentScreen('signup')} />
+      ) : (
+        <SignUpScreen onNavigateToSignIn={() => setCurrentScreen('signin')} />
+      )}
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 40,
     flex: 1,
   },
 });
