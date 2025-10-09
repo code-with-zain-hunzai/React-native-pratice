@@ -19,15 +19,16 @@ import { colors } from "../style/colors"
 import { spacing, borderRadius, shadows } from "../style/spacing"
 import { typography } from "../style/typography"
 import { signUpSchema, type SignUpFormData } from "../schemas/authSchemas"
+import { useAuth } from "../hooks/useAuth"
 
 interface SignUpScreenProps {
     onNavigateToSignIn: () => void
 }
 
 export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigateToSignIn }) => {
-    const [isLoading, setIsLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
+    const { signUp, isLoading, error } = useAuth()
 
     const {
         control,
@@ -38,12 +39,26 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigateToSignIn }
         defaultValues: { fullName: "", email: "", password: "", confirmPassword: "" },
     })
 
-    const onSubmit = async (_data: SignUpFormData) => {
-        setIsLoading(true)
-        setTimeout(() => {
-            setIsLoading(false)
-            Alert.alert("Success", "Account created successfully!", [{ text: "OK", onPress: onNavigateToSignIn }])
-        }, 1200)
+    const onSubmit = async (data: SignUpFormData) => {
+        try {
+            await signUp({
+                email: data.email,
+                password: data.password,
+                name: data.fullName, // Map fullName to name for API
+            })
+            
+            Alert.alert(
+                "Success", 
+                "Account created successfully!", 
+                [{ text: "OK", onPress: onNavigateToSignIn }]
+            )
+        } catch (err) {
+            // Error is already handled by useAuth hook
+            Alert.alert(
+                "Sign Up Failed", 
+                error || "An error occurred during sign up. Please try again."
+            )
+        }
     }
 
     return (

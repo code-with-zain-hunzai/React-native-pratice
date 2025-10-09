@@ -19,14 +19,15 @@ import { colors } from "../style/colors"
 import { spacing, borderRadius, shadows } from "../style/spacing"
 import { typography } from "../style/typography"
 import { signInSchema, type SignInFormData } from "../schemas/authSchemas"
+import { useAuth } from "../hooks/useAuth"
 
 interface SignInScreenProps {
   onNavigateToSignUp: () => void
 }
 
 export const SignInScreen: React.FC<SignInScreenProps> = ({ onNavigateToSignUp }) => {
-  const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const { signIn, isLoading, error } = useAuth()
 
   const {
     control,
@@ -38,11 +39,20 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ onNavigateToSignUp }
   })
 
   const onSubmit = async (data: SignInFormData) => {
-    setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
-      Alert.alert("Success", `Welcome back!\nEmail: ${data.email}`)
-    }, 1200)
+    try {
+      await signIn({
+        email: data.email,
+        password: data.password,
+      })
+      
+      Alert.alert("Success", "Welcome back! You have successfully signed in.")
+    } catch (err) {
+      // Error is already handled by useAuth hook
+      Alert.alert(
+        "Sign In Failed", 
+        error || "An error occurred during sign in. Please try again."
+      )
+    }
   }
 
   return (
