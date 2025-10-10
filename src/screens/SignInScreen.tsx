@@ -15,6 +15,7 @@ import {
 } from "react-native"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import Toast from "react-native-toast-message"
 import { colors } from "../style/colors"
 import { spacing, borderRadius, shadows } from "../style/spacing"
 import { typography } from "../style/typography"
@@ -23,11 +24,16 @@ import { useAuth } from "../hooks/useAuth"
 
 interface SignInScreenProps {
   onNavigateToSignUp: () => void
+  onLoginSuccess?: () => void
 }
 
-export const SignInScreen: React.FC<SignInScreenProps> = ({ onNavigateToSignUp }) => {
+export const SignInScreen: React.FC<SignInScreenProps> = ({ 
+  onNavigateToSignUp,
+  onLoginSuccess 
+}) => {
   const [showPassword, setShowPassword] = useState(false)
   const { signIn, isLoading, error } = useAuth()
+  const [apiError, setApiError] = useState<string | null>(null)
 
   const {
     control,
@@ -40,18 +46,38 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ onNavigateToSignUp }
 
   const onSubmit = async (data: SignInFormData) => {
     try {
+      setApiError(null)
       await signIn({
         email: data.email,
         password: data.password,
       })
       
-      Alert.alert("Success", "Welcome back! You have successfully signed in.")
-    } catch (err) {
-      // Error is already handled by useAuth hook
-      Alert.alert(
-        "Sign In Failed", 
-        error || "An error occurred during sign in. Please try again."
-      )
+      // Show success toast
+      Toast.show({
+        type: 'success',
+        text1: 'Welcome Back!',
+        text2: 'You have successfully signed in.',
+        position: 'top',
+        visibilityTime: 3000,
+      })
+      
+      // Call success callback to navigate to main app
+      if (onLoginSuccess) {
+        onLoginSuccess()
+      }
+    } catch (err: any) {
+      // Display error message from API
+      const errorMessage = err?.message || error || "Invalid credentials. Please check your email and password."
+      setApiError(errorMessage)
+      
+      // Show error toast
+      Toast.show({
+        type: 'error',
+        text1: 'Sign In Failed',
+        text2: errorMessage,
+        position: 'top',
+        visibilityTime: 4000,
+      })
     }
   }
 
@@ -71,6 +97,12 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ onNavigateToSignUp }
           <Text style={styles.subtitle}>Sign in to continue</Text>
         </View>
 
+        {/* Error Message Display */}
+        {apiError && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>⚠️ {apiError}</Text>
+          </View>
+        )}
 
         <View style={styles.form}>
           <View style={styles.inputContainer}>
@@ -311,5 +343,19 @@ const styles = StyleSheet.create({
     ...typography.body2,
     color: colors.primary,
     fontWeight: "700",
+  },
+  errorBanner: {
+    backgroundColor: "#FEE2E2",
+    borderWidth: 1,
+    borderColor: "#EF4444",
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  errorBannerText: {
+    ...typography.body2,
+    color: "#DC2626",
+    fontWeight: "600",
   },
 })

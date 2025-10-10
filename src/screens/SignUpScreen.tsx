@@ -15,6 +15,7 @@ import {
 } from "react-native"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import Toast from "react-native-toast-message"
 import { colors } from "../style/colors"
 import { spacing, borderRadius, shadows } from "../style/spacing"
 import { typography } from "../style/typography"
@@ -23,12 +24,17 @@ import { useAuth } from "../hooks/useAuth"
 
 interface SignUpScreenProps {
     onNavigateToSignIn: () => void
+    onSignUpSuccess?: () => void
 }
 
-export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigateToSignIn }) => {
+export const SignUpScreen: React.FC<SignUpScreenProps> = ({ 
+    onNavigateToSignIn,
+    onSignUpSuccess 
+}) => {
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
     const { signUp, isLoading, error } = useAuth()
+    const [apiError, setApiError] = useState<string | null>(null)
 
     const {
         control,
@@ -41,23 +47,39 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigateToSignIn }
 
     const onSubmit = async (data: SignUpFormData) => {
         try {
+            setApiError(null)
             await signUp({
                 email: data.email,
                 password: data.password,
                 name: data.fullName, // Map fullName to name for API
             })
             
-            Alert.alert(
-                "Success", 
-                "Account created successfully!", 
-                [{ text: "OK", onPress: onNavigateToSignIn }]
-            )
-        } catch (err) {
-            // Error is already handled by useAuth hook
-            Alert.alert(
-                "Sign Up Failed", 
-                error || "An error occurred during sign up. Please try again."
-            )
+            // Show success toast
+            Toast.show({
+                type: 'success',
+                text1: 'Account Created!',
+                text2: 'Welcome to Kekar! Your account has been created successfully.',
+                position: 'top',
+                visibilityTime: 3000,
+            })
+            
+            // Call success callback to navigate to main app
+            if (onSignUpSuccess) {
+                onSignUpSuccess()
+            }
+        } catch (err: any) {
+            // Display error message from API
+            const errorMessage = err?.message || error || "An error occurred during sign up. Please try again."
+            setApiError(errorMessage)
+            
+            // Show error toast
+            Toast.show({
+                type: 'error',
+                text1: 'Sign Up Failed',
+                text2: errorMessage,
+                position: 'top',
+                visibilityTime: 4000,
+            })
         }
     }
 
@@ -75,6 +97,13 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigateToSignIn }
                     <Text style={styles.title}>Create Account</Text>
                     <Text style={styles.subtitle}>Sign up to get started</Text>
                 </View>
+
+                {/* Error Message Display */}
+                {apiError && (
+                    <View style={styles.errorBanner}>
+                        <Text style={styles.errorBannerText}>⚠️ {apiError}</Text>
+                    </View>
+                )}
 
                     <View style={styles.form}>
                         <View style={styles.inputContainer}>
@@ -367,5 +396,19 @@ const styles = StyleSheet.create({
         color: colors.text.secondary,
         textAlign: "center",
         marginTop: spacing.lg,
+    },
+    errorBanner: {
+        backgroundColor: "#FEE2E2",
+        borderWidth: 1,
+        borderColor: "#EF4444",
+        borderRadius: borderRadius.md,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.md,
+        marginBottom: spacing.lg,
+    },
+    errorBannerText: {
+        ...typography.body2,
+        color: "#DC2626",
+        fontWeight: "600",
     },
 })
