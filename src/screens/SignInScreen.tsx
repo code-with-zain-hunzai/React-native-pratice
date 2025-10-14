@@ -20,16 +20,14 @@ import { colors } from "../style/colors"
 import { spacing, borderRadius, shadows } from "../style/spacing"
 import { typography } from "../style/typography"
 import { signInSchema, type SignInFormData } from "../schemas/authSchemas"
-import { useAuth } from "../hooks/useAuth"
+import { useAuth } from "../contexts/AuthContext"
 
 interface SignInScreenProps {
   onNavigateToSignUp: () => void
-  onLoginSuccess?: () => void
 }
 
 export const SignInScreen: React.FC<SignInScreenProps> = ({ 
-  onNavigateToSignUp,
-  onLoginSuccess 
+  onNavigateToSignUp
 }) => {
   const [showPassword, setShowPassword] = useState(false)
   const { signIn, isLoading, error } = useAuth()
@@ -61,10 +59,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
         visibilityTime: 3000,
       })
       
-      // Call success callback to navigate to main app
-      if (onLoginSuccess) {
-        onLoginSuccess()
-      }
+      // Navigation will happen automatically when isAuthenticated changes
     } catch (err: any) {
       // Display error message from API
       const errorMessage = err?.message || error || "Invalid credentials. Please check your email and password."

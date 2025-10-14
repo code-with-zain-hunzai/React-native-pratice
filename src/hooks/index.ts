@@ -1,4 +1,4 @@
 // Central export file for hooks
-export { useAuth } from './useAuth';
+export { useAuth } from '../contexts/AuthContext';
 export { useWishlist } from './useWishlist';
 

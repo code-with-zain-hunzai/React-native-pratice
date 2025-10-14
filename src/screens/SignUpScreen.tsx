@@ -20,16 +20,14 @@ import { colors } from "../style/colors"
 import { spacing, borderRadius, shadows } from "../style/spacing"
 import { typography } from "../style/typography"
 import { signUpSchema, type SignUpFormData } from "../schemas/authSchemas"
-import { useAuth } from "../hooks/useAuth"
+import { useAuth } from "../contexts/AuthContext"
 
 interface SignUpScreenProps {
     onNavigateToSignIn: () => void
-    onSignUpSuccess?: () => void
 }
 
 export const SignUpScreen: React.FC<SignUpScreenProps> = ({ 
-    onNavigateToSignIn,
-    onSignUpSuccess 
+    onNavigateToSignIn
 }) => {
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
@@ -63,10 +61,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 visibilityTime: 3000,
             })
             
-            // Call success callback to navigate to main app
-            if (onSignUpSuccess) {
-                onSignUpSuccess()
-            }
+            // Navigation will happen automatically when isAuthenticated changes
         } catch (err: any) {
             // Display error message from API
             const errorMessage = err?.message || error || "An error occurred during sign up. Please try again."

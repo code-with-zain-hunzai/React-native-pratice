@@ -18,9 +18,9 @@ import {
   ProfileScreen,
 } from './src/screens';
 import { BottomTabBar, TabName } from './src/components';
-import { useAuth } from './src/hooks/useAuth';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 
-function App() {
+function AppContent() {
   const { isAuthenticated, signOut } = useAuth();
   const [authScreen, setAuthScreen] = useState<'signin' | 'signup'>('signin');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
@@ -61,15 +61,12 @@ function App() {
     }
   };
 
-  const handleLoginSuccess = () => {
-    // This will be called after successful login
-    setActiveTab('Home');
-  };
-
-  const handleSignUpSuccess = () => {
-    // This will be called after successful sign up
-    setActiveTab('Home');
-  };
+  // Reset to home tab when user logs in
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      setActiveTab('Home');
+    }
+  }, [isAuthenticated]);
 
   const renderMainApp = () => {
     return (
@@ -103,14 +100,12 @@ function App() {
       return (
         <SignInScreen 
           onNavigateToSignUp={() => setAuthScreen('signup')}
-          onLoginSuccess={handleLoginSuccess}
         />
       );
     }
     return (
       <SignUpScreen 
         onNavigateToSignIn={() => setAuthScreen('signin')}
-        onSignUpSuccess={handleSignUpSuccess}
       />
     );
   };
@@ -129,5 +124,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
 
 export default App;
