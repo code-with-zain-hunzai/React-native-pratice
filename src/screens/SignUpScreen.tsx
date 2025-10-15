@@ -11,7 +11,7 @@ import {
     ScrollView,
     KeyboardAvoidingView,
     Platform,
-    Alert,
+    Image,
 } from "react-native"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -21,17 +21,19 @@ import { spacing, borderRadius, shadows } from "../style/spacing"
 import { typography } from "../style/typography"
 import { signUpSchema, type SignUpFormData } from "../schemas/authSchemas"
 import { useAuth } from "../contexts/AuthContext"
+import googleIcon from "../assets/google.png"
+import facebookIcon from "../assets/facebook.png"
 
 interface SignUpScreenProps {
     onNavigateToSignIn: () => void
 }
 
-export const SignUpScreen: React.FC<SignUpScreenProps> = ({ 
+export const SignUpScreen: React.FC<SignUpScreenProps> = ({
     onNavigateToSignIn
 }) => {
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
-    const { signUp, isLoading, error } = useAuth()
+    const { signUp, signInWithGoogle, signInWithFacebook, isLoading, error } = useAuth()
     const [apiError, setApiError] = useState<string | null>(null)
 
     const {
@@ -51,7 +53,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 password: data.password,
                 name: data.fullName, // Map fullName to name for API
             })
-            
+
             // Show success toast
             Toast.show({
                 type: 'success',
@@ -60,17 +62,71 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 position: 'top',
                 visibilityTime: 3000,
             })
-            
+
             // Navigation will happen automatically when isAuthenticated changes
         } catch (err: any) {
             // Display error message from API
             const errorMessage = err?.message || error || "An error occurred during sign up. Please try again."
             setApiError(errorMessage)
-            
+
             // Show error toast
             Toast.show({
                 type: 'error',
                 text1: 'Sign Up Failed',
+                text2: errorMessage,
+                position: 'top',
+                visibilityTime: 4000,
+            })
+        }
+    }
+
+    const handleGoogleSignIn = async () => {
+        try {
+            setApiError(null)
+            await signInWithGoogle()
+            
+            // Note: Success handling will happen in the OAuth callback
+            Toast.show({
+                type: 'info',
+                text1: 'Redirecting to Google',
+                text2: 'Please complete sign in with Google.',
+                position: 'top',
+                visibilityTime: 3000,
+            })
+        } catch (err: any) {
+            const errorMessage = err?.message || "Failed to initiate Google sign in."
+            setApiError(errorMessage)
+            
+            Toast.show({
+                type: 'error',
+                text1: 'Google Sign In Failed',
+                text2: errorMessage,
+                position: 'top',
+                visibilityTime: 4000,
+            })
+        }
+    }
+
+    const handleFacebookSignIn = async () => {
+        try {
+            setApiError(null)
+            await signInWithFacebook()
+            
+            // Note: Success handling will happen in the OAuth callback
+            Toast.show({
+                type: 'info',
+                text1: 'Redirecting to Facebook',
+                text2: 'Please complete sign in with Facebook.',
+                position: 'top',
+                visibilityTime: 3000,
+            })
+        } catch (err: any) {
+            const errorMessage = err?.message || "Failed to initiate Facebook sign in."
+            setApiError(errorMessage)
+            
+            Toast.show({
+                type: 'error',
+                text1: 'Facebook Sign In Failed',
                 text2: errorMessage,
                 position: 'top',
                 visibilityTime: 4000,
@@ -93,152 +149,162 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
                     <Text style={styles.subtitle}>Sign up to get started</Text>
                 </View>
 
-                {/* Error Message Display */}
-                {apiError && (
-                    <View style={styles.errorBanner}>
-                        <Text style={styles.errorBannerText}>⚠️ {apiError}</Text>
+                <View style={styles.form}>
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Full Name</Text>
+                        <Controller
+                            control={control}
+                            name="fullName"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <TextInput
+                                    style={[styles.input, errors.fullName && styles.inputError]}
+                                    placeholder="Enter your full name"
+                                    placeholderTextColor={colors.text.hint}
+                                    value={value}
+                                    onChangeText={onChange}
+                                    onBlur={onBlur}
+                                    autoCapitalize="words"
+                                    autoComplete="name"
+                                    textContentType="name"
+                                    accessible
+                                    accessibilityLabel="Full Name"
+                                />
+                            )}
+                        />
+                        {errors.fullName && <Text style={styles.errorText}>{errors.fullName.message}</Text>}
                     </View>
-                )}
 
-                    <View style={styles.form}>
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Full Name</Text>
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Email</Text>
+                        <Controller
+                            control={control}
+                            name="email"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <TextInput
+                                    style={[styles.input, errors.email && styles.inputError]}
+                                    placeholder="Enter your email"
+                                    placeholderTextColor={colors.text.hint}
+                                    value={value}
+                                    onChangeText={onChange}
+                                    onBlur={onBlur}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    autoComplete="email"
+                                    textContentType="emailAddress"
+                                    accessible
+                                    accessibilityLabel="Email"
+                                />
+                            )}
+                        />
+                        {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
+                    </View>
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Password</Text>
+
+                        <View style={styles.inputRow}>
                             <Controller
                                 control={control}
-                                name="fullName"
+                                name="password"
                                 render={({ field: { onChange, onBlur, value } }) => (
                                     <TextInput
-                                        style={[styles.input, errors.fullName && styles.inputError]}
-                                        placeholder="Enter your full name"
+                                        style={[
+                                            styles.input,
+                                            styles.inputFlex,
+                                            errors.password && styles.inputError,
+                                        ]}
+                                        placeholder="Create a password"
                                         placeholderTextColor={colors.text.hint}
                                         value={value}
                                         onChangeText={onChange}
                                         onBlur={onBlur}
-                                        autoCapitalize="words"
-                                        autoComplete="name"
-                                        textContentType="name"
-                                        accessible
-                                        accessibilityLabel="Full Name"
-                                    />
-                                )}
-                            />
-                            {errors.fullName && <Text style={styles.errorText}>{errors.fullName.message}</Text>}
-                        </View>
-
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Email</Text>
-                            <Controller
-                                control={control}
-                                name="email"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <TextInput
-                                        style={[styles.input, errors.email && styles.inputError]}
-                                        placeholder="Enter your email"
-                                        placeholderTextColor={colors.text.hint}
-                                        value={value}
-                                        onChangeText={onChange}
-                                        onBlur={onBlur}
-                                        keyboardType="email-address"
+                                        secureTextEntry={!showPassword}
                                         autoCapitalize="none"
-                                        autoComplete="email"
-                                        textContentType="emailAddress"
+                                        autoComplete="password-new"
+                                        textContentType="newPassword"
                                         accessible
-                                        accessibilityLabel="Email"
+                                        accessibilityLabel="Password"
                                     />
                                 )}
                             />
-                            {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
                         </View>
 
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Password</Text>
-                            <View style={styles.inputRow}>
-                                <Controller
-                                    control={control}
-                                    name="password"
-                                    render={({ field: { onChange, onBlur, value } }) => (
-                                        <TextInput
-                                            style={[styles.input, styles.inputFlex, errors.password && styles.inputError]}
-                                            placeholder="Create a password"
-                                            placeholderTextColor={colors.text.hint}
-                                            value={value}
-                                            onChangeText={onChange}
-                                            onBlur={onBlur}
-                                            secureTextEntry={!showPassword}
-                                            autoCapitalize="none"
-                                            autoComplete="password-new"
-                                            textContentType="newPassword"
-                                            accessible
-                                            accessibilityLabel="Password"
-                                        />
-                                    )}
-                                />
-                            </View>
-                            {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
-                        </View>
-
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Confirm Password</Text>
-                            <View style={styles.inputRow}>
-                                <Controller
-                                    control={control}
-                                    name="confirmPassword"
-                                    render={({ field: { onChange, onBlur, value } }) => (
-                                        <TextInput
-                                            style={[styles.input, styles.inputFlex, errors.confirmPassword && styles.inputError]}
-                                            placeholder="Confirm your password"
-                                            placeholderTextColor={colors.text.hint}
-                                            value={value}
-                                            onChangeText={onChange}
-                                            onBlur={onBlur}
-                                            secureTextEntry={!showConfirm}
-                                            autoCapitalize="none"
-                                            autoComplete="password-new"
-                                            textContentType="newPassword"
-                                            accessible
-                                            accessibilityLabel="Confirm Password"
-                                        />
-                                    )}
-                                />
-                            </View>
-                            {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword.message}</Text>}
-                        </View>
-
-                        <TouchableOpacity
-                            style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
-                            onPress={handleSubmit(onSubmit)}
-                            disabled={isLoading}
-                            accessibilityRole="button"
-                        >
-                            <Text style={styles.primaryButtonText}>{isLoading ? "Creating Account..." : "Sign Up"}</Text>
-                        </TouchableOpacity>
-
-                        <View style={styles.divider}>
-                            <View style={styles.dividerLine} />
-                            <Text style={styles.dividerText}>OR</Text>
-                            <View style={styles.dividerLine} />
-                        </View>
-
-                        <TouchableOpacity style={styles.secondaryButton}>
-                            <Text style={styles.secondaryButtonText}>Continue with Google</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.secondaryButton}>
-                            <Text style={styles.secondaryButtonText}>Continue with Facebook</Text>
-                        </TouchableOpacity>
-
-                        <View style={styles.footer}>
-                            <Text style={styles.footerText}>Already have an account? </Text>
-                            <TouchableOpacity onPress={onNavigateToSignIn}>
-                                <Text style={styles.linkText}>Sign In</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <Text style={styles.termsText}>
-                            By signing up, you agree to our <Text style={styles.linkText}>Terms of Service</Text> and{" "}
-                            <Text style={styles.linkText}>Privacy Policy</Text>
-                        </Text>
+                        {errors.password && (
+                            <Text style={styles.errorText}>{errors.password.message}</Text>
+                        )}
                     </View>
+
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Confirm Password</Text>
+                        <View style={styles.inputRow}>
+                            <Controller
+                                control={control}
+                                name="confirmPassword"
+                                render={({ field: { onChange, onBlur, value } }) => (
+                                    <TextInput
+                                        style={[styles.input, styles.inputFlex, errors.confirmPassword && styles.inputError]}
+                                        placeholder="Confirm your password"
+                                        placeholderTextColor={colors.text.hint}
+                                        value={value}
+                                        onChangeText={onChange}
+                                        onBlur={onBlur}
+                                        secureTextEntry={!showConfirm}
+                                        autoCapitalize="none"
+                                        autoComplete="password-new"
+                                        textContentType="newPassword"
+                                        accessible
+                                        accessibilityLabel="Confirm Password"
+                                    />
+                                )}
+                            />
+                        </View>
+                        {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword.message}</Text>}
+                    </View>
+
+                    <TouchableOpacity
+                        style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
+                        onPress={handleSubmit(onSubmit)}
+                        disabled={isLoading}
+                        accessibilityRole="button"
+                    >
+                        <Text style={styles.primaryButtonText}>{isLoading ? "Creating Account..." : "Sign Up"}</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.divider}>
+                        <View style={styles.dividerLine} />
+                        <Text style={styles.dividerText}>OR</Text>
+                        <View style={styles.dividerLine} />
+                    </View>
+
+                    <TouchableOpacity 
+                        style={styles.secondaryButton}
+                        onPress={handleGoogleSignIn}
+                        disabled={isLoading}
+                    >
+                        <Image source={googleIcon} style={styles.socialIcon} />
+                        <Text style={styles.secondaryButtonText}>Continue with Google</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={styles.secondaryButton}
+                        onPress={handleFacebookSignIn}
+                        disabled={isLoading}
+                    >
+                        <Image source={facebookIcon} style={styles.socialIcon} />
+                        <Text style={styles.secondaryButtonText}>Continue with Facebook</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.footer}>
+                        <Text style={styles.footerText}>Already have an account? </Text>
+                        <TouchableOpacity onPress={onNavigateToSignIn}>
+                            <Text style={styles.linkText}>Sign In</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <Text style={styles.termsText}>
+                        By signing up, you agree to our <Text style={styles.linkText}>Terms of Service</Text> and{" "}
+                        <Text style={styles.linkText}>Privacy Policy</Text>
+                    </Text>
+                </View>
             </ScrollView>
         </KeyboardAvoidingView>
     )
@@ -320,6 +386,9 @@ const styles = StyleSheet.create({
         color: colors.primary,
         fontWeight: "600",
     },
+    iconContainer: {
+        paddingHorizontal: 6,
+    },
     inputError: {
         borderColor: colors.error,
         borderWidth: 1.5,
@@ -365,12 +434,19 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
         borderRadius: borderRadius.md,
         paddingVertical: spacing.md,
+        flexDirection: "row",
         alignItems: "center",
+        justifyContent: "center",
         marginBottom: spacing.md,
     },
     secondaryButtonText: {
         ...typography.button,
         color: colors.text.primary,
+        marginLeft: spacing.sm,
+    },
+    socialIcon: {
+        width: 20,
+        height: 20,
     },
     footer: {
         flexDirection: "row",

@@ -13,6 +13,10 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   clearError: () => void;
   refreshUser: () => Promise<void>;
+  // OAuth methods
+  signInWithGoogle: () => Promise<void>;
+  signInWithFacebook: () => Promise<void>;
+  handleOAuthCallback: (url: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -135,6 +139,60 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
   }, []);
 
+  const signInWithGoogle = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      await authService.signInWithOAuth('google');
+      // Note: The actual authentication happens via OAuth callback
+      // The user will be set when handleOAuthCallback is called
+    } catch (err) {
+      const apiError = err as ApiError;
+      setError(apiError.message || 'Google sign in failed. Please try again.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const signInWithFacebook = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      await authService.signInWithOAuth('facebook');
+      // Note: The actual authentication happens via OAuth callback
+      // The user will be set when handleOAuthCallback is called
+    } catch (err) {
+      const apiError = err as ApiError;
+      setError(apiError.message || 'Facebook sign in failed. Please try again.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleOAuthCallback = useCallback(async (url: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const userData = await authService.handleOAuthCallback(url);
+      
+      if (userData) {
+        setUser(userData);
+        setIsAuthenticated(true);
+      }
+    } catch (err) {
+      const apiError = err as ApiError;
+      setError(apiError.message || 'OAuth authentication failed.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -145,6 +203,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signOut,
     clearError,
     refreshUser,
+    signInWithGoogle,
+    signInWithFacebook,
+    handleOAuthCallback,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -157,4 +218,5 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
 

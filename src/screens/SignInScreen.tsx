@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
 } from "react-native"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -21,16 +22,18 @@ import { spacing, borderRadius, shadows } from "../style/spacing"
 import { typography } from "../style/typography"
 import { signInSchema, type SignInFormData } from "../schemas/authSchemas"
 import { useAuth } from "../contexts/AuthContext"
+import googleIcon from "../assets/google.png"
+import facebookIcon from "../assets/facebook.png"
 
 interface SignInScreenProps {
   onNavigateToSignUp: () => void
 }
 
-export const SignInScreen: React.FC<SignInScreenProps> = ({ 
+export const SignInScreen: React.FC<SignInScreenProps> = ({
   onNavigateToSignUp
 }) => {
   const [showPassword, setShowPassword] = useState(false)
-  const { signIn, isLoading, error } = useAuth()
+  const { signIn, signInWithGoogle, signInWithFacebook, isLoading, error } = useAuth()
   const [apiError, setApiError] = useState<string | null>(null)
 
   const {
@@ -49,7 +52,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
         email: data.email,
         password: data.password,
       })
-      
+
       // Show success toast
       Toast.show({
         type: 'success',
@@ -58,17 +61,71 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
         position: 'top',
         visibilityTime: 3000,
       })
-      
+
       // Navigation will happen automatically when isAuthenticated changes
     } catch (err: any) {
       // Display error message from API
       const errorMessage = err?.message || error || "Invalid credentials. Please check your email and password."
       setApiError(errorMessage)
-      
+
       // Show error toast
       Toast.show({
         type: 'error',
         text1: 'Sign In Failed',
+        text2: errorMessage,
+        position: 'top',
+        visibilityTime: 4000,
+      })
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setApiError(null)
+      await signInWithGoogle()
+      
+      // Note: Success handling will happen in the OAuth callback
+      Toast.show({
+        type: 'info',
+        text1: 'Redirecting to Google',
+        text2: 'Please complete sign in with Google.',
+        position: 'top',
+        visibilityTime: 3000,
+      })
+    } catch (err: any) {
+      const errorMessage = err?.message || "Failed to initiate Google sign in."
+      setApiError(errorMessage)
+      
+      Toast.show({
+        type: 'error',
+        text1: 'Google Sign In Failed',
+        text2: errorMessage,
+        position: 'top',
+        visibilityTime: 4000,
+      })
+    }
+  }
+
+  const handleFacebookSignIn = async () => {
+    try {
+      setApiError(null)
+      await signInWithFacebook()
+      
+      // Note: Success handling will happen in the OAuth callback
+      Toast.show({
+        type: 'info',
+        text1: 'Redirecting to Facebook',
+        text2: 'Please complete sign in with Facebook.',
+        position: 'top',
+        visibilityTime: 3000,
+      })
+    } catch (err: any) {
+      const errorMessage = err?.message || "Failed to initiate Facebook sign in."
+      setApiError(errorMessage)
+      
+      Toast.show({
+        type: 'error',
+        text1: 'Facebook Sign In Failed',
         text2: errorMessage,
         position: 'top',
         visibilityTime: 4000,
@@ -91,13 +148,6 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Sign in to continue</Text>
         </View>
-
-        {/* Error Message Display */}
-        {apiError && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorBannerText}>⚠️ {apiError}</Text>
-          </View>
-        )}
 
         <View style={styles.form}>
           <View style={styles.inputContainer}>
@@ -171,11 +221,21 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
             <View style={styles.dividerLine} />
           </View>
 
-          <TouchableOpacity style={styles.secondaryButton}>
+          <TouchableOpacity 
+            style={styles.secondaryButton}
+            onPress={handleGoogleSignIn}
+            disabled={isLoading}
+          >
+            <Image source={googleIcon} style={styles.socialIcon} />
             <Text style={styles.secondaryButtonText}>Continue with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryButton}>
+          <TouchableOpacity 
+            style={styles.secondaryButton}
+            onPress={handleFacebookSignIn}
+            disabled={isLoading}
+          >
+            <Image source={facebookIcon} style={styles.socialIcon} />
             <Text style={styles.secondaryButtonText}>Continue with Facebook</Text>
           </TouchableOpacity>
 
@@ -320,10 +380,18 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     alignItems: "center",
     marginBottom: spacing.md,
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
   },
   secondaryButtonText: {
     ...typography.button,
     color: colors.text.primary,
+    marginLeft: spacing.sm,
+  },
+  socialIcon: {
+    width: 20,
+    height: 20,
   },
   footer: {
     flexDirection: "row",
