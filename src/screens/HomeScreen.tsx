@@ -18,13 +18,6 @@ import { useWishlist } from "../hooks/useWishlist"
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window")
 
-const categories = [
-  { id: "1", name: "Rooms", icon: "🏠" },
-  { id: "2", name: "Apartments", icon: "🏢" },
-  { id: "3", name: "Cabin", icon: "🏡" },
-  { id: "4", name: "Tent", icon: "⛺" },
-  { id: "5", name: "Guest House", icon: "🏘️" },
-]
 
 interface HomeScreenProps {
   onPlacePress?: (id: string) => void
@@ -43,7 +36,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     await toggleWishlist(place)
   }
 
-  const renderCategory = ({ item }: { item: typeof categories[0] }) => (
+  const renderCategory = ({ item }: any) => (
     <TouchableOpacity
       style={styles.categoryItem}
       onPress={() => setSelectedCategory(item.id)}
@@ -133,45 +126,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.searchContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <View style={styles.searchTextContainer}>
-            <Text style={styles.searchLabel}>Where to</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="City, Hotel, any place"
-              placeholderTextColor={colors.text.hint}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-          <TouchableOpacity style={styles.filterButton}>
-            <View style={styles.filterIconContainer}>
-              <Text style={styles.filterIcon}>⚙️</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Categories */}
-        <View style={styles.categoriesSection}>
-          <FlatList
-            data={categories}
-            renderItem={renderCategory}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesContainer}
-          />
-        </View>
-
         {/* Featured Studios */}
         <View style={styles.section}>
           <FlatList
@@ -216,6 +175,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: spacing.xl,
     flex: 1,
     backgroundColor: colors.background,
   },
