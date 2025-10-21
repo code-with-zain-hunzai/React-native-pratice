@@ -1,43 +1,64 @@
-import apiClient, { saveAuthToken, saveUserData, removeAuthToken } from '../api/api';
-import { API_ENDPOINTS } from '../api/constant';
-import {
-  SignUpRequest,
-  SignInRequest,
-  AuthResponse,
-  UserResponse,
-  User,
-} from '../types/api';
 import { supabase } from '../config/supabase';
 import { Provider } from '@supabase/supabase-js';
 import { Linking } from 'react-native';
 import { ENV } from '../config/env';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { User, SignUpRequest, SignInRequest, AuthSession } from '../types/api';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+
+// Storage keys
+const STORAGE_KEYS = {
+  USER_DATA: '@user_data',
+};
 
 /**
- * Authentication Service
- * Handles all authentication-related API calls including:
- * - Traditional email/password auth (custom backend)
- * - Supabase OAuth (Google, Facebook)
+ * Simple Supabase Authentication Service
+ * Handles all authentication using Supabase Auth
  */
 class AuthService {
   /**
-   * Sign up a new user
-   * @param data - User registration data (email, password, name)
-   * @returns Promise with auth response containing user data and token
+   * Sign up a new user with email and password
+   * @param data - User registration data (email, password, full_name)
+   * @returns Promise with user data
    */
-  async signUp(data: SignUpRequest): Promise<AuthResponse> {
+  async signUp(data: SignUpRequest): Promise<User> {
     try {
-      const response = await apiClient.post<AuthResponse>(
-        API_ENDPOINTS.AUTH.SIGNUP,
-        data
-      );
-
-      // Save token and user data to AsyncStorage
-      if (response.data.success && response.data.data) {
-        await saveAuthToken(response.data.data.token);
-        await saveUserData(response.data.data.user);
+      if (!supabase) {
+        throw new Error('Supabase is not configured. Please check your environment variables.');
       }
 
-      return response.data;
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            full_name: data.full_name || '',
+          },
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!authData.user) {
+        throw new Error('No user data returned');
+      }
+
+      // Convert Supabase user to our User type
+      const user: User = {
+        id: authData.user.id,
+        email: authData.user.email || '',
+        full_name: authData.user.user_metadata?.full_name || '',
+        username: authData.user.user_metadata?.full_name || authData.user.email?.split('@')[0] || 'User',
+        avatar_url: authData.user.user_metadata?.avatar_url,
+        created_at: authData.user.created_at,
+      };
+
+      // Save user data to AsyncStorage
+      await this.saveUserData(user);
+
+      return user;
     } catch (error) {
       console.error('Sign up error:', error);
       throw error;
@@ -45,24 +66,43 @@ class AuthService {
   }
 
   /**
-   * Sign in an existing user
+   * Sign in an existing user with email and password
    * @param data - User login credentials (email, password)
-   * @returns Promise with auth response containing user data and token
+   * @returns Promise with user data
    */
-  async signIn(data: SignInRequest): Promise<AuthResponse> {
+  async signIn(data: SignInRequest): Promise<User> {
     try {
-      const response = await apiClient.post<AuthResponse>(
-        API_ENDPOINTS.AUTH.SIGNIN,
-        data
-      );
-
-      // Save token and user data to AsyncStorage
-      if (response.data.success && response.data.data) {
-        await saveAuthToken(response.data.data.token);
-        await saveUserData(response.data.data.user);
+      if (!supabase) {
+        throw new Error('Supabase is not configured. Please check your environment variables.');
       }
 
-      return response.data;
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!authData.user) {
+        throw new Error('No user data returned');
+      }
+
+      // Convert Supabase user to our User type
+      const user: User = {
+        id: authData.user.id,
+        email: authData.user.email || '',
+        full_name: authData.user.user_metadata?.full_name || '',
+        username: authData.user.user_metadata?.full_name || authData.user.email?.split('@')[0] || 'User',
+        avatar_url: authData.user.user_metadata?.avatar_url,
+        created_at: authData.user.created_at,
+      };
+
+      // Save user data to AsyncStorage
+      await this.saveUserData(user);
+
+      return user;
     } catch (error) {
       console.error('Sign in error:', error);
       throw error;
@@ -71,35 +111,61 @@ class AuthService {
 
   /**
    * Get current authenticated user
-   * Requires valid JWT token in storage
-   * @returns Promise with current user data
+   * @returns Promise with current user data or null
    */
-  async getCurrentUser(): Promise<User> {
+  async getCurrentUser(): Promise<User | null> {
     try {
-      const response = await apiClient.get<UserResponse>(API_ENDPOINTS.AUTH.ME);
-
-      // Update user data in AsyncStorage
-      if (response.data.success && response.data.data) {
-        await saveUserData(response.data.data.user);
-        return response.data.data.user;
+      if (!supabase) {
+        throw new Error('Supabase is not configured. Please check your environment variables.');
       }
 
-      throw new Error('Failed to get user data');
+      const { data: { user }, error } = await supabase.auth.getUser();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!user) {
+        return null;
+      }
+
+      // Convert Supabase user to our User type
+      const userData: User = {
+        id: user.id,
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || '',
+        username: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+        avatar_url: user.user_metadata?.avatar_url,
+        created_at: user.created_at,
+      };
+
+      // Update user data in AsyncStorage
+      await this.saveUserData(userData);
+
+      return userData;
     } catch (error) {
       console.error('Get current user error:', error);
-      throw error;
+      return null;
     }
   }
 
   /**
    * Sign out the current user
-   * Removes token and user data from AsyncStorage
    */
   async signOut(): Promise<void> {
     try {
-      await removeAuthToken();
-      // You can also call a logout endpoint here if your backend has one
-      // await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT);
+      if (!supabase) {
+        throw new Error('Supabase is not configured. Please check your environment variables.');
+      }
+
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw error;
+      }
+
+      // Clear stored user data
+      await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
     } catch (error) {
       console.error('Sign out error:', error);
       throw error;
@@ -108,17 +174,16 @@ class AuthService {
 
   /**
    * Check if user is authenticated
-   * @returns Promise<boolean> - true if token exists
+   * @returns Promise<boolean> - true if user is authenticated
    */
   async isAuthenticated(): Promise<boolean> {
     try {
-      const { getAuthToken } = await import('../api/api');
-      const token = await getAuthToken();
-      
-      // Also check Supabase session
+      if (!supabase) {
+        return false;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
-      
-      return !!(token || session);
+      return !!session;
     } catch (error) {
       console.error('Check authentication error:', error);
       return false;
@@ -128,15 +193,18 @@ class AuthService {
   /**
    * Sign in with OAuth provider (Google or Facebook)
    * @param provider - OAuth provider ('google' | 'facebook')
-   * @returns Promise with authentication result
    */
   async signInWithOAuth(provider: 'google' | 'facebook'): Promise<void> {
     try {
+      if (!supabase) {
+        throw new Error('Supabase is not configured. Please check your environment variables.');
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider as Provider,
         options: {
           redirectTo: ENV.REDIRECT_URL,
-          skipBrowserRedirect: false,
+          skipBrowserRedirect: true,
         },
       });
 
@@ -152,6 +220,8 @@ class AuthService {
         } else {
           throw new Error('Cannot open OAuth URL');
         }
+      } else {
+        throw new Error('No OAuth URL received');
       }
     } catch (error) {
       console.error(`${provider} OAuth error:`, error);
@@ -160,12 +230,93 @@ class AuthService {
   }
 
   /**
+   * Sign in with Google using native Google Sign-In
+   * This is the recommended approach for React Native apps
+   * @returns Promise with user data
+   */
+  async signInWithGoogle(): Promise<User> {
+    try {
+      if (!supabase) {
+        throw new Error('Supabase is not configured. Please check your environment variables.');
+      }
+
+      // Configure Google Sign-In if not already configured
+      await this.configureGoogleSignIn();
+
+      // Check if Google Play Services are available
+      await GoogleSignin.hasPlayServices();
+
+      // Sign in with Google
+      const userInfo = await GoogleSignin.signIn();
+      
+      if (!userInfo.data?.idToken) {
+        throw new Error('No ID token received from Google');
+      }
+
+      // Sign in to Supabase with the Google ID token
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: userInfo.data.idToken,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data.user) {
+        throw new Error('No user data returned from Supabase');
+      }
+
+      // Convert Supabase user to our User type
+      const user: User = {
+        id: data.user.id,
+        email: data.user.email || '',
+        full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || '',
+        username: data.user.user_metadata?.full_name || 
+                  data.user.user_metadata?.name || 
+                  data.user.email?.split('@')[0] || 'User',
+        avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture,
+        created_at: data.user.created_at,
+      };
+
+      // Save user data
+      await this.saveUserData(user);
+
+      return user;
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Configure Google Sign-In
+   * This should be called before using Google Sign-In
+   */
+  private async configureGoogleSignIn(): Promise<void> {
+    try {
+      // You'll need to add your Google Web Client ID here
+      // Get this from your Google Cloud Console
+      GoogleSignin.configure({
+        webClientId: ENV.GOOGLE_WEB_CLIENT_ID || 'YOUR_GOOGLE_WEB_CLIENT_ID',
+        offlineAccess: true,
+      });
+    } catch (error) {
+      console.error('Google Sign-In configuration error:', error);
+      throw new Error('Failed to configure Google Sign-In');
+    }
+  }
+
+  /**
    * Handle OAuth callback/deep link
-   * This should be called when the app is opened via deep link after OAuth
    * @param url - The deep link URL
    */
   async handleOAuthCallback(url: string): Promise<User | null> {
     try {
+      if (!supabase) {
+        throw new Error('Supabase is not configured. Please check your environment variables.');
+      }
+
       // Parse the URL to extract tokens
       const hashIndex = url.indexOf('#');
       const queryString = hashIndex !== -1 ? url.substring(hashIndex + 1) : url.split('?')[1];
@@ -197,20 +348,20 @@ class AuthService {
           throw error;
         }
 
-        if (data?.session) {
-          // Convert Supabase user to your User type
+        if (data?.session?.user) {
+          // Convert Supabase user to our User type
           const user: User = {
-            id: Number(data.session.user.id) || 0,
+            id: data.session.user.id,
             email: data.session.user.email || '',
+            full_name: data.session.user.user_metadata?.full_name || '',
             username: data.session.user.user_metadata?.full_name || 
-                      data.session.user.user_metadata?.name || 
-                      data.session.user.email?.split('@')[0] ||
-                      'User',
-            createdAt: data.session.user.created_at,
+                      data.session.user.email?.split('@')[0] || 'User',
+            avatar_url: data.session.user.user_metadata?.avatar_url,
+            created_at: data.session.user.created_at,
           };
 
           // Save user data
-          await saveUserData(user);
+          await this.saveUserData(user);
           
           return user;
         }
@@ -227,8 +378,12 @@ class AuthService {
    * Get current Supabase session
    * @returns Current session or null
    */
-  async getSupabaseSession() {
+  async getSession() {
     try {
+      if (!supabase) {
+        return null;
+      }
+
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
@@ -247,28 +402,43 @@ class AuthService {
    * @param callback - Function to call when auth state changes
    */
   onAuthStateChange(callback: (event: string, session: any) => void) {
-    return supabase.auth.onAuthStateChange((event, session) => {
+    if (!supabase) {
+      console.warn('Supabase is not configured. Auth state changes will not be tracked.');
+      return { data: { subscription: { unsubscribe: () => {} } } };
+    }
+
+    return supabase.auth.onAuthStateChange((event: string, session: any) => {
       callback(event, session);
     });
   }
 
   /**
-   * Sign out from both custom backend and Supabase
+   * Save user data to AsyncStorage
+   * @param userData - User data to save
    */
-  async signOutAll(): Promise<void> {
+  private async saveUserData(userData: User): Promise<void> {
     try {
-      // Sign out from custom backend
-      await this.signOut();
-      
-      // Sign out from Supabase
-      await supabase.auth.signOut();
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
     } catch (error) {
-      console.error('Sign out all error:', error);
+      console.error('Error saving user data:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get user data from AsyncStorage
+   * @returns User data or null
+   */
+  async getUserData(): Promise<User | null> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA);
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error('Error getting user data:', error);
+      return null;
     }
   }
 }
 
 // Export singleton instance
 export default new AuthService();
-

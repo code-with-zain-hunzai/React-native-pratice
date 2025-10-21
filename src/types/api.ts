@@ -1,48 +1,27 @@
-// API Response Types
+// Supabase User Types
 
 export interface User {
-  id: number;
+  id: string;
   email: string;
-  username: string;
-  createdAt: Date | string;
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+  created_at: string;
+  updated_at?: string;
 }
 
-export interface AuthData {
+export interface AuthSession {
+  access_token: string;
+  refresh_token: string;
+  expires_at: number;
   user: User;
-  token: string;
-}
-
-export interface ApiResponse<T = any> {
-  success: boolean;
-  message: string;
-  data?: T;
-}
-
-export interface AuthResponse extends ApiResponse<AuthData> {
-  success: true;
-  message: string;
-  data: AuthData;
-}
-
-export interface UserResponse extends ApiResponse<{ user: User }> {
-  success: true;
-  message: string;
-  data: {
-    user: User;
-  };
-}
-
-export interface ErrorResponse {
-  success: false;
-  message: string;
-  errors?: Record<string, string[]>;
 }
 
 // Request Types
 export interface SignUpRequest {
   email: string;
   password: string;
-  name: string;
+  full_name?: string;
 }
 
 export interface SignInRequest {

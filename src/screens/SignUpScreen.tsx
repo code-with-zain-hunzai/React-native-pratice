@@ -51,7 +51,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
             await signUp({
                 email: data.email,
                 password: data.password,
-                name: data.fullName, // Map fullName to name for API
+                full_name: data.fullName, // Map fullName to full_name for Supabase
             })
 
             // Show success toast
@@ -284,14 +284,14 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
                         <Text style={styles.secondaryButtonText}>Continue with Google</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity 
+                    {/* <TouchableOpacity 
                         style={styles.secondaryButton}
                         onPress={handleFacebookSignIn}
                         disabled={isLoading}
                     >
                         <Image source={facebookIcon} style={styles.socialIcon} />
                         <Text style={styles.secondaryButtonText}>Continue with Facebook</Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
 
                     <View style={styles.footer}>
                         <Text style={styles.footerText}>Already have an account? </Text>

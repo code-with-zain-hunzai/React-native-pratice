@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import authService from '../services/authService';
 import { User, SignUpRequest, SignInRequest } from '../types/api';
-import { ApiError } from '../api/api';
 
 interface AuthContextType {
   user: User | null;
@@ -43,8 +42,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (authenticated) {
         // Try to get current user data
-        const { getUserData } = await import('../api/api');
-        const userData = await getUserData();
+        const userData = await authService.getUserData();
         if (userData) {
           setUser(userData);
         }
@@ -60,15 +58,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       setError(null);
 
-      const response = await authService.signUp(data);
+      const user = await authService.signUp(data);
       
-      if (response.data) {
-        setUser(response.data.user);
-        setIsAuthenticated(true);
-      }
-    } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message || 'Sign up failed. Please try again.');
+      setUser(user);
+      setIsAuthenticated(true);
+    } catch (err: any) {
+      setError(err.message || 'Sign up failed. Please try again.');
       throw err;
     } finally {
       setIsLoading(false);
@@ -80,15 +75,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       setError(null);
 
-      const response = await authService.signIn(data);
+      const user = await authService.signIn(data);
       
-      if (response.data) {
-        setUser(response.data.user);
-        setIsAuthenticated(true);
-      }
-    } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message || 'Sign in failed. Please try again.');
+      setUser(user);
+      setIsAuthenticated(true);
+    } catch (err: any) {
+      setError(err.message || 'Sign in failed. Please try again.');
       throw err;
     } finally {
       setIsLoading(false);
@@ -104,9 +96,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setUser(null);
       setIsAuthenticated(false);
-    } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message || 'Sign out failed. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Sign out failed. Please try again.');
       throw err;
     } finally {
       setIsLoading(false);
@@ -119,11 +110,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
 
       const userData = await authService.getCurrentUser();
-      setUser(userData);
-      setIsAuthenticated(true);
-    } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message || 'Failed to refresh user data.');
+      if (userData) {
+        setUser(userData);
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to refresh user data.');
       
       // If refresh fails, user might not be authenticated
       setIsAuthenticated(false);
@@ -144,12 +139,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       setError(null);
       
-      await authService.signInWithOAuth('google');
-      // Note: The actual authentication happens via OAuth callback
-      // The user will be set when handleOAuthCallback is called
-    } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message || 'Google sign in failed. Please try again.');
+      // Use the new native Google Sign-In method
+      const userData = await authService.signInWithGoogle();
+      
+      if (userData) {
+        setUser(userData);
+        setIsAuthenticated(true);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Google sign in failed. Please try again.');
       throw err;
     } finally {
       setIsLoading(false);
@@ -164,9 +162,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await authService.signInWithOAuth('facebook');
       // Note: The actual authentication happens via OAuth callback
       // The user will be set when handleOAuthCallback is called
-    } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message || 'Facebook sign in failed. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Facebook sign in failed. Please try again.');
       throw err;
     } finally {
       setIsLoading(false);
@@ -184,9 +181,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(userData);
         setIsAuthenticated(true);
       }
-    } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message || 'OAuth authentication failed.');
+    } catch (err: any) {
+      setError(err.message || 'OAuth authentication failed.');
       throw err;
     } finally {
       setIsLoading(false);

@@ -230,14 +230,14 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({
             <Text style={styles.secondaryButtonText}>Continue with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          {/* <TouchableOpacity 
             style={styles.secondaryButton}
             onPress={handleFacebookSignIn}
             disabled={isLoading}
           >
             <Image source={facebookIcon} style={styles.socialIcon} />
             <Text style={styles.secondaryButtonText}>Continue with Facebook</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Don't have an account? </Text>
