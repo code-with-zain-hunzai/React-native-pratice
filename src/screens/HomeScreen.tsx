@@ -22,11 +22,15 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window")
 interface HomeScreenProps {
   onPlacePress?: (id: string) => void
   onNavigateToWishlist?: () => void
+  onNavigateToProfile?: () => void
+  onNavigateToTrip?: () => void
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
   onPlacePress,
   onNavigateToWishlist,
+  onNavigateToProfile,
+  onNavigateToTrip,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>("1")
   const [searchQuery, setSearchQuery] = useState("")

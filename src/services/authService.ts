@@ -240,32 +240,56 @@ class AuthService {
         throw new Error('Supabase is not configured. Please check your environment variables.');
       }
 
+      console.log('Starting Google Sign-In process...');
+
       // Configure Google Sign-In if not already configured
       await this.configureGoogleSignIn();
 
       // Check if Google Play Services are available
-      await GoogleSignin.hasPlayServices();
+      console.log('Checking Google Play Services...');
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+      // Sign out any existing user before signing in
+      try {
+        console.log('Signing out any existing user...');
+        await GoogleSignin.signOut();
+      } catch (error) {
+        // Ignore error if user is not signed in
+        console.log('No existing user to sign out, proceeding with sign-in...');
+      }
 
       // Sign in with Google
+      console.log('Attempting Google Sign-In...');
       const userInfo = await GoogleSignin.signIn();
       
+      console.log('Google Sign-In successful, user info:', {
+        id: userInfo.data?.user?.id,
+        email: userInfo.data?.user?.email,
+        name: userInfo.data?.user?.name,
+        hasIdToken: !!userInfo.data?.idToken
+      });
+      
       if (!userInfo.data?.idToken) {
-        throw new Error('No ID token received from Google');
+        throw new Error('No ID token received from Google. This usually means the Google Sign-In configuration is incorrect.');
       }
 
       // Sign in to Supabase with the Google ID token
+      console.log('Signing in to Supabase with Google token...');
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: userInfo.data.idToken,
       });
 
       if (error) {
+        console.error('Supabase sign-in error:', error);
         throw error;
       }
 
       if (!data.user) {
         throw new Error('No user data returned from Supabase');
       }
+
+      console.log('Supabase sign-in successful');
 
       // Convert Supabase user to our User type
       const user: User = {
@@ -282,9 +306,23 @@ class AuthService {
       // Save user data
       await this.saveUserData(user);
 
+      console.log('Google Sign-In completed successfully');
       return user;
     } catch (error) {
       console.error('Google sign in error:', error);
+      
+      // Provide more specific error messages
+      const errorCode = (error as any)?.code;
+      if (errorCode === 'DEVELOPER_ERROR') {
+        throw new Error('Google Sign-In configuration error. Please check:\n1. google-services.json is properly configured\n2. Google Web Client ID is correct\n3. SHA-1 certificate fingerprint is added to Google Console\n4. Package name matches exactly');
+      } else if (errorCode === 'SIGN_IN_CANCELLED') {
+        throw new Error('Google Sign-In was cancelled by user');
+      } else if (errorCode === 'IN_PROGRESS') {
+        throw new Error('Google Sign-In is already in progress');
+      } else if (errorCode === 'PLAY_SERVICES_NOT_AVAILABLE') {
+        throw new Error('Google Play Services not available. Please update Google Play Services.');
+      }
+      
       throw error;
     }
   }
@@ -295,15 +333,27 @@ class AuthService {
    */
   private async configureGoogleSignIn(): Promise<void> {
     try {
-      // You'll need to add your Google Web Client ID here
-      // Get this from your Google Cloud Console
+      console.log('Configuring Google Sign-In...');
+      
+      // Use Web Client ID if available, otherwise fall back to Android Client ID
+      const webClientId = ENV.GOOGLE_WEB_CLIENT_ID !== 'YOUR_GOOGLE_WEB_CLIENT_ID' ? ENV.GOOGLE_WEB_CLIENT_ID : ENV.GOOGLE_ANDROID_CLIENT_ID;
+      
+      if (!webClientId || webClientId === 'YOUR_GOOGLE_WEB_CLIENT_ID' || webClientId === 'YOUR_GOOGLE_ANDROID_CLIENT_ID') {
+        throw new Error('Google Client ID is not configured. Please set GOOGLE_WEB_CLIENT_ID or GOOGLE_ANDROID_CLIENT_ID in your environment configuration.');
+      }
+
       GoogleSignin.configure({
-        webClientId: ENV.GOOGLE_WEB_CLIENT_ID || 'YOUR_GOOGLE_WEB_CLIENT_ID',
+        webClientId: webClientId,
         offlineAccess: true,
+        forceCodeForRefreshToken: true,
+        accountName: '', // Optional: specify account name
       });
+      
+      console.log('Google Sign-In configured successfully with client ID:', webClientId);
     } catch (error) {
       console.error('Google Sign-In configuration error:', error);
-      throw new Error('Failed to configure Google Sign-In');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error('Failed to configure Google Sign-In: ' + errorMessage);
     }
   }
 

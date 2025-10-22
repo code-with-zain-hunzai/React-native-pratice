@@ -6,10 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Alert,
 } from "react-native"
 import { colors } from "../style/colors"
 import { spacing, borderRadius, shadows } from "../style/spacing"
 import { typography } from "../style/typography"
+import { useAuth } from "../contexts/AuthContext"
 
 const upcomingTrips = [
   {
@@ -55,16 +57,54 @@ const pastTrips = [
 
 interface TripScreenProps {
   onTripPress?: (id: string) => void
+  onNavigateToHome?: () => void
+  onNavigateToProfile?: () => void
+  onNavigateToWishlist?: () => void
 }
 
-export const TripScreen: React.FC<TripScreenProps> = ({ onTripPress }) => {
+export const TripScreen: React.FC<TripScreenProps> = ({ 
+  onTripPress,
+  onNavigateToHome,
+  onNavigateToProfile,
+  onNavigateToWishlist,
+}) => {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming")
+
+  const handleMenuButtonPress = () => {
+    Alert.alert(
+      'Navigation',
+      'Where would you like to go?',
+      [
+        { text: 'Home', onPress: onNavigateToHome },
+        { text: 'Profile', onPress: onNavigateToProfile },
+        { text: 'Wishlist', onPress: onNavigateToWishlist },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    )
+  }
+
+  const handleProfileButtonPress = () => {
+    onNavigateToProfile?.()
+  }
+
+  const handleTripPress = (id: string) => {
+    Alert.alert(
+      'Trip Details',
+      `Trip ${id} details coming soon!`,
+      [
+        { text: 'OK' },
+        { text: 'Book Now', onPress: () => console.log('Book trip:', id) },
+      ]
+    )
+    onTripPress?.(id)
+  }
 
   const renderUpcomingTrip = (item: typeof upcomingTrips[0]) => (
     <TouchableOpacity
       key={item.id}
       style={styles.tripCard}
-      onPress={() => onTripPress?.(item.id)}
+      onPress={() => handleTripPress(item.id)}
       activeOpacity={0.9}
     >
       <Image source={{ uri: item.image }} style={styles.tripImage} />
@@ -115,7 +155,7 @@ export const TripScreen: React.FC<TripScreenProps> = ({ onTripPress }) => {
     <TouchableOpacity
       key={item.id}
       style={styles.tripCard}
-      onPress={() => onTripPress?.(item.id)}
+      onPress={() => handleTripPress(item.id)}
       activeOpacity={0.9}
     >
       <Image source={{ uri: item.image }} style={styles.tripImage} />
@@ -151,7 +191,7 @@ export const TripScreen: React.FC<TripScreenProps> = ({ onTripPress }) => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton}>
+        <TouchableOpacity style={styles.menuButton} onPress={handleMenuButtonPress}>
           <View style={styles.menuIcon}>
             <View style={styles.menuLine} />
             <View style={styles.menuLine} />
@@ -159,10 +199,10 @@ export const TripScreen: React.FC<TripScreenProps> = ({ onTripPress }) => {
           </View>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Trips</Text>
-        <TouchableOpacity style={styles.profileButton}>
+        <TouchableOpacity style={styles.profileButton} onPress={handleProfileButtonPress}>
           <Image
             source={{
-              uri: "https://i.pravatar.cc/150?img=12",
+              uri: user?.avatar_url || "https://i.pravatar.cc/150?img=12",
             }}
             style={styles.profileImage}
           />

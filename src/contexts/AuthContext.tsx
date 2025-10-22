@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import authService from '../services/authService';
+import { supabase } from '../config/supabase';
 import { User, SignUpRequest, SignInRequest } from '../types/api';
 
 interface AuthContextType {
@@ -33,6 +34,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Check authentication status on mount
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  // Listen to auth state changes from Supabase
+  useEffect(() => {
+    if (!supabase) return;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        setUser(null);
+        setIsAuthenticated(false);
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (session.user) {
+          const userData: User = {
+            id: session.user.id,
+            email: session.user.email || '',
+            full_name: session.user.user_metadata?.full_name || '',
+            username: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+            avatar_url: session.user.user_metadata?.avatar_url,
+            created_at: session.user.created_at,
+          };
+          setUser(userData);
+          setIsAuthenticated(true);
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const checkAuth = async () => {
@@ -94,8 +124,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       await authService.signOut();
       
-      setUser(null);
-      setIsAuthenticated(false);
+      // Note: The auth state listener will handle updating the state automatically
     } catch (err: any) {
       setError(err.message || 'Sign out failed. Please try again.');
       throw err;

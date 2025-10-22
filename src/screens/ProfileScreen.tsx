@@ -7,10 +7,13 @@ import {
   TouchableOpacity,
   Image,
   Switch,
+  Alert,
 } from "react-native"
 import { colors } from "../style/colors"
 import { spacing, borderRadius, shadows } from "../style/spacing"
 import { typography } from "../style/typography"
+import { useAuth } from "../contexts/AuthContext"
+import Toast from 'react-native-toast-message'
 
 const menuItems = [
   {
@@ -61,19 +64,107 @@ const menuItems = [
 interface ProfileScreenProps {
   onMenuItemPress?: (action: string) => void
   onLogout?: () => void
+  onNavigateToHome?: () => void
+  onNavigateToTrip?: () => void
+  onNavigateToWishlist?: () => void
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onMenuItemPress,
   onLogout,
+  onNavigateToHome,
+  onNavigateToTrip,
+  onNavigateToWishlist,
 }) => {
+  const { user, refreshUser, signOut } = useAuth()
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true)
+
+  // Refresh user data when component mounts
+  React.useEffect(() => {
+    refreshUser()
+  }, [refreshUser])
+
+  const handleMenuItemPress = (action: string) => {
+    switch (action) {
+      case 'editProfile':
+        Alert.alert('Edit Profile', 'Edit profile functionality coming soon!')
+        break
+      case 'payment':
+        Alert.alert('Payment Methods', 'Payment methods functionality coming soon!')
+        break
+      case 'history':
+        onNavigateToTrip?.()
+        break
+      case 'notifications':
+        // Toggle is handled by the switch
+        break
+      case 'settings':
+        Alert.alert('Settings', 'Settings functionality coming soon!')
+        break
+      case 'support':
+        Alert.alert('Help & Support', 'Support functionality coming soon!')
+        break
+      case 'about':
+        Alert.alert('About', 'Kekar App v1.0.0\nYour travel companion!')
+        break
+      default:
+        onMenuItemPress?.(action)
+    }
+  }
+
+  const handleMenuButtonPress = () => {
+    Alert.alert(
+      'Navigation',
+      'Where would you like to go?',
+      [
+        { text: 'Home', onPress: onNavigateToHome },
+        { text: 'Trips', onPress: onNavigateToTrip },
+        { text: 'Wishlist', onPress: onNavigateToWishlist },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    )
+  }
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut()
+              Toast.show({
+                type: 'success',
+                text1: 'Logged Out',
+                text2: 'You have been successfully logged out.',
+                position: 'top',
+              })
+            } catch (error: any) {
+              Toast.show({
+                type: 'error',
+                text1: 'Logout Failed',
+                text2: error?.message || 'An error occurred while logging out.',
+                position: 'top',
+              })
+            }
+          },
+        },
+      ]
+    )
+  }
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton}>
+        <TouchableOpacity style={styles.menuButton} onPress={handleMenuButtonPress}>
           <View style={styles.menuIcon}>
             <View style={styles.menuLine} />
             <View style={styles.menuLine} />
@@ -93,12 +184,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         <View style={styles.profileCard}>
           <Image
             source={{
-              uri: "https://i.pravatar.cc/150?img=12",
+              uri: user?.avatar_url || "https://i.pravatar.cc/150?img=12",
             }}
             style={styles.profileAvatar}
           />
-          <Text style={styles.profileName}>John Traveler</Text>
-          <Text style={styles.profileEmail}>john.traveler@example.com</Text>
+          <Text style={styles.profileName}>
+            {user?.full_name || user?.username || 'User'}
+          </Text>
+          <Text style={styles.profileEmail}>
+            {user?.email || 'user@example.com'}
+          </Text>
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>12</Text>
@@ -123,7 +218,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             <TouchableOpacity
               key={item.id}
               style={styles.menuItem}
-              onPress={() => onMenuItemPress?.(item.action)}
+              onPress={() => handleMenuItemPress(item.action)}
               activeOpacity={0.7}
             >
               <View style={styles.menuItemLeft}>
@@ -152,7 +247,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         {/* Logout Button */}
         <TouchableOpacity
           style={styles.logoutButton}
-          onPress={onLogout}
+          onPress={handleLogout}
           activeOpacity={0.8}
         >
           <Text style={styles.logoutText}>Logout</Text>

@@ -25,6 +25,7 @@ function AppContent() {
   const [authScreen, setAuthScreen] = useState<'signin' | 'signup'>('signin');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
 
+
   const handlePlacePress = (id: string) => {
     console.log('Place pressed:', id);
     // Navigate to place detail screen
@@ -40,26 +41,22 @@ function AppContent() {
     // Handle menu actions
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      setAuthScreen('signin');
-      setActiveTab('Home'); // Reset to home tab
-      Toast.show({
-        type: 'success',
-        text1: 'Logged Out',
-        text2: 'You have been successfully logged out.',
-        position: 'top',
-      });
-    } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Logout Failed',
-        text2: 'An error occurred while logging out.',
-        position: 'top',
-      });
-    }
+  const handleNavigateToHome = () => {
+    setActiveTab('Home');
   };
+
+  const handleNavigateToProfile = () => {
+    setActiveTab('Profile');
+  };
+
+  const handleNavigateToTrip = () => {
+    setActiveTab('Trip');
+  };
+
+  const handleNavigateToWishlist = () => {
+    setActiveTab('Wishlist');
+  };
+
 
   // Reset to home tab when user logs in
   useEffect(() => {
@@ -122,20 +119,33 @@ function AppContent() {
         {activeTab === 'Home' && (
           <HomeScreen
             onPlacePress={handlePlacePress}
-            onNavigateToWishlist={() => setActiveTab('Wishlist')}
+            onNavigateToWishlist={handleNavigateToWishlist}
+            onNavigateToProfile={handleNavigateToProfile}
+            onNavigateToTrip={handleNavigateToTrip}
           />
         )}
         {activeTab === 'Wishlist' && (
           <WishlistScreen
             onPlacePress={handlePlacePress}
-            onNavigateToHome={() => setActiveTab('Home')}
+            onNavigateToHome={handleNavigateToHome}
+            onNavigateToProfile={handleNavigateToProfile}
+            onNavigateToTrip={handleNavigateToTrip}
           />
         )}
-        {activeTab === 'Trip' && <TripScreen onTripPress={handleTripPress} />}
+        {activeTab === 'Trip' && (
+          <TripScreen
+            onTripPress={handleTripPress}
+            onNavigateToHome={handleNavigateToHome}
+            onNavigateToProfile={handleNavigateToProfile}
+            onNavigateToWishlist={handleNavigateToWishlist}
+          />
+        )}
         {activeTab === 'Profile' && (
           <ProfileScreen
             onMenuItemPress={handleMenuItemPress}
-            onLogout={handleLogout}
+            onNavigateToHome={handleNavigateToHome}
+            onNavigateToTrip={handleNavigateToTrip}
+            onNavigateToWishlist={handleNavigateToWishlist}
           />
         )}
         <BottomTabBar activeTab={activeTab} onTabPress={setActiveTab} />

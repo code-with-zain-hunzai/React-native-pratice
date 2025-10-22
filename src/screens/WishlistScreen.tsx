@@ -6,22 +6,59 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Alert,
 } from "react-native"
 import { colors } from "../style/colors"
 import { spacing, borderRadius, shadows } from "../style/spacing"
 import { typography } from "../style/typography"
 import { useWishlist } from "../hooks/useWishlist"
 import { Place } from "../data/places"
+import { useAuth } from "../contexts/AuthContext"
 
 interface WishlistScreenProps {
   onPlacePress?: (id: string) => void
   onNavigateToHome?: () => void
+  onNavigateToProfile?: () => void
+  onNavigateToTrip?: () => void
 }
 
 export const WishlistScreen: React.FC<WishlistScreenProps> = ({
   onPlacePress,
+  onNavigateToHome,
+  onNavigateToProfile,
+  onNavigateToTrip,
 }) => {
   const { wishlistItems, isInWishlist, toggleWishlist } = useWishlist()
+  const { user } = useAuth()
+
+  const handleMenuButtonPress = () => {
+    Alert.alert(
+      'Navigation',
+      'Where would you like to go?',
+      [
+        { text: 'Home', onPress: onNavigateToHome },
+        { text: 'Profile', onPress: onNavigateToProfile },
+        { text: 'Trips', onPress: onNavigateToTrip },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    )
+  }
+
+  const handleProfileButtonPress = () => {
+    onNavigateToProfile?.()
+  }
+
+  const handlePlacePress = (id: string) => {
+    Alert.alert(
+      'Place Details',
+      `Place ${id} details coming soon!`,
+      [
+        { text: 'OK' },
+        { text: 'Book Now', onPress: () => console.log('Book place:', id) },
+      ]
+    )
+    onPlacePress?.(id)
+  }
 
   const handleToggleFavorite = async (place: Place) => {
     await toggleWishlist(place)
@@ -32,7 +69,7 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({
       <TouchableOpacity
         key={item.id}
         style={styles.wishlistCard}
-        onPress={() => onPlacePress?.(item.id)}
+        onPress={() => handlePlacePress(item.id)}
         activeOpacity={0.9}
       >
         <Image
@@ -79,7 +116,7 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton}>
+        <TouchableOpacity style={styles.menuButton} onPress={handleMenuButtonPress}>
           <View style={styles.menuIcon}>
             <View style={styles.menuLine} />
             <View style={styles.menuLine} />
@@ -87,10 +124,10 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({
           </View>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Wishlist</Text>
-        <TouchableOpacity style={styles.profileButton}>
+        <TouchableOpacity style={styles.profileButton} onPress={handleProfileButtonPress}>
           <Image
             source={{
-              uri: "https://i.pravatar.cc/150?img=12",
+              uri: user?.avatar_url || "https://i.pravatar.cc/150?img=12",
             }}
             style={styles.profileImage}
           />
