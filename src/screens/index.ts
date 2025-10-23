@@ -4,4 +4,5 @@ export { HomeScreen } from './HomeScreen';
 export { WishlistScreen } from './WishlistScreen';
 export { TripScreen } from './TripScreen';
 export { ProfileScreen } from './ProfileScreen';
+export { ChatScreen } from './ChatScreen';
 

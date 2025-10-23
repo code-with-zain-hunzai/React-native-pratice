@@ -10,7 +10,7 @@ import { colors } from "../style/colors"
 import { spacing, borderRadius, shadows } from "../style/spacing"
 import { typography } from "../style/typography"
 
-export type TabName = "Explore" | "Home" | "Wishlist" | "Trip" | "Profile"
+export type TabName = "Chat" | "Home" | "Wishlist" | "Trip" | "Profile"
 
 interface BottomTabBarProps {
   activeTab: TabName
@@ -18,7 +18,7 @@ interface BottomTabBarProps {
 }
 
 const tabs: Array<{ name: TabName; icon: string; activeIcon: string }> = [
-  { name: "Explore", icon: "🔍", activeIcon: "🔍" },
+  { name: "Chat", icon: "💬", activeIcon: "💬" },
   { name: "Home", icon: "🏠", activeIcon: "🏠" },
   { name: "Wishlist", icon: "🤍", activeIcon: "❤️" },
   { name: "Trip", icon: "📋", activeIcon: "📋" },

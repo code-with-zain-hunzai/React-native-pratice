@@ -16,6 +16,7 @@ import {
   WishlistScreen,
   TripScreen,
   ProfileScreen,
+  ChatScreen,
 } from './src/screens';
 import { BottomTabBar, TabName } from './src/components';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
@@ -116,6 +117,14 @@ function AppContent() {
   const renderMainApp = () => {
     return (
       <View style={styles.container}>
+        {activeTab === 'Chat' && (
+          <ChatScreen
+            onNavigateToHome={handleNavigateToHome}
+            onNavigateToWishlist={handleNavigateToWishlist}
+            onNavigateToProfile={handleNavigateToProfile}
+            onNavigateToTrip={handleNavigateToTrip}
+          />
+        )}
         {activeTab === 'Home' && (
           <HomeScreen
             onPlacePress={handlePlacePress}
